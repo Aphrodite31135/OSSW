@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pydantic import BaseModel
 
 
@@ -7,15 +9,17 @@ class HealthResponse(BaseModel):
 
 class AssetResponse(BaseModel):
     job_id: str
+    backend: str
+    asset_format: str
     asset_name: str
     asset_url: str
-    texture_url: str
-    preview_url: str
-    gray_render_url: str
-    metadata_url: str
-    vertex_count: int
-    face_count: int
-    resolution: int
-    height_scale: float
-    base_thickness: float
+    texture_url: Optional[str] = None
+    preview_url: Optional[str] = None
+    gray_render_url: Optional[str] = None
+    metadata_url: Optional[str] = None
+    vertex_count: Optional[int] = None
+    face_count: Optional[int] = None
+    resolution: Optional[int] = None
+    height_scale: Optional[float] = None
+    base_thickness: Optional[float] = None
     summary: str

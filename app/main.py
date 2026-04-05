@@ -7,6 +7,8 @@ from fastapi.templating import Jinja2Templates
 
 from app.schemas import AssetResponse, HealthResponse
 from app.services.asset_pipeline import AssetPipeline
+from app.services.real3d_client import Real3DClientError
+from app.settings import Settings
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -15,6 +17,7 @@ TEMPLATE_DIR = BASE_DIR / "app" / "templates"
 OUTPUT_DIR = BASE_DIR / "outputs"
 
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+settings = Settings.from_env()
 
 app = FastAPI(
     title="Image to 3D Asset Studio",
@@ -24,7 +27,7 @@ app = FastAPI(
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 app.mount("/outputs", StaticFiles(directory=OUTPUT_DIR), name="outputs")
 templates = Jinja2Templates(directory=str(TEMPLATE_DIR))
-pipeline = AssetPipeline(output_dir=OUTPUT_DIR)
+pipeline = AssetPipeline(output_dir=OUTPUT_DIR, settings=settings)
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -65,11 +68,14 @@ async def generate_asset(
     if not 0.04 <= base_thickness <= 0.3:
         raise HTTPException(status_code=400, detail="Base thickness must be between 0.04 and 0.3.")
 
-    result = pipeline.generate(
-        image_bytes=image_bytes,
-        original_name=image.filename or "upload.png",
-        resolution=resolution,
-        height_scale=height_scale,
-        base_thickness=base_thickness,
-    )
+    try:
+        result = pipeline.generate(
+            image_bytes=image_bytes,
+            original_name=image.filename or "upload.png",
+            resolution=resolution,
+            height_scale=height_scale,
+            base_thickness=base_thickness,
+        )
+    except Real3DClientError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
     return AssetResponse(**result)

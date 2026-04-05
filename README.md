@@ -39,6 +39,27 @@ uvicorn app.main:app --reload
 
 Open `http://127.0.0.1:8000`.
 
+## Real image-to-3D backend
+
+The app now supports an optional external real 3D backend.
+
+Environment variables:
+
+- `MODEL_BACKEND=relief` for the built-in lightweight mesh pipeline
+- `MODEL_BACKEND=hunyuan_api` to call an external Hunyuan3D-style API server
+- `HUNYUAN3D_API_URL=http://host.docker.internal:8081/generate`
+- `FALLBACK_TO_RELIEF=true` to fall back to the built-in mesh when the external backend is unavailable
+
+When the real backend is enabled, the app packages:
+
+- `model.glb`
+- `preview.png`
+- `gray_render.png`
+- `metadata.json`
+- `asset_package.zip`
+
+This keeps the current homework demo stable while providing a realistic path toward a true single-image 3D generation backend on the desktop GPU.
+
 ## Planned second release
 
 The intended update release can extend this project to:

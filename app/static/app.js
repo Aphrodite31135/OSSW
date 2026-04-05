@@ -23,6 +23,26 @@ const resolutionValue = document.getElementById("resolution-value");
 const heightValue = document.getElementById("height-value");
 const baseValue = document.getElementById("base-value");
 
+function setLinkState(element, href) {
+  if (href) {
+    element.href = href;
+    element.classList.remove("hidden");
+  } else {
+    element.removeAttribute("href");
+    element.classList.add("hidden");
+  }
+}
+
+function setImageState(element, src) {
+  if (src) {
+    element.src = src;
+    element.parentElement.classList.remove("hidden");
+  } else {
+    element.removeAttribute("src");
+    element.parentElement.classList.add("hidden");
+  }
+}
+
 function syncRangeLabels() {
   heightScaleValue.textContent = Number(heightScaleInput.value).toFixed(2);
   baseThicknessValue.textContent = Number(baseThicknessInput.value).toFixed(2);
@@ -75,18 +95,18 @@ form.addEventListener("submit", async (event) => {
 
     const data = await response.json();
     resultSummary.textContent = data.summary;
-    previewImage.src = data.preview_url;
-    grayRenderImage.src = data.gray_render_url;
-    assetLink.href = data.asset_url;
-    textureLink.href = data.texture_url;
-    grayRenderLink.href = data.gray_render_url;
-    metadataLink.href = data.metadata_url;
-    vertexCount.textContent = data.vertex_count.toLocaleString();
-    faceCount.textContent = data.face_count.toLocaleString();
-    resolutionValue.textContent = `${data.resolution} px`;
-    heightValue.textContent = Number(data.height_scale).toFixed(2);
-    baseValue.textContent = Number(data.base_thickness).toFixed(2);
-    statusText.textContent = `Asset generated successfully. Job ID: ${data.job_id}`;
+    setImageState(previewImage, data.preview_url);
+    setImageState(grayRenderImage, data.gray_render_url);
+    setLinkState(assetLink, data.asset_url);
+    setLinkState(textureLink, data.texture_url);
+    setLinkState(grayRenderLink, data.gray_render_url);
+    setLinkState(metadataLink, data.metadata_url);
+    vertexCount.textContent = data.vertex_count ? data.vertex_count.toLocaleString() : "-";
+    faceCount.textContent = data.face_count ? data.face_count.toLocaleString() : "-";
+    resolutionValue.textContent = data.resolution ? `${data.resolution} px` : data.asset_format.toUpperCase();
+    heightValue.textContent = data.height_scale ? Number(data.height_scale).toFixed(2) : data.backend;
+    baseValue.textContent = data.base_thickness ? Number(data.base_thickness).toFixed(2) : "-";
+    statusText.textContent = `Asset generated successfully. Job ID: ${data.job_id} (${data.backend})`;
     resultCard.classList.remove("hidden");
   } catch (error) {
     statusText.textContent = error.message || "An unexpected error occurred.";
