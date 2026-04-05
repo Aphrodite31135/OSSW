@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     git-lfs \
     libgl1 \
+    libopengl0 \
     libglib2.0-0 \
     libsm6 \
     libxext6 \

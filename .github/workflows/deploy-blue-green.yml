@@ -11,6 +11,10 @@ env:
   APP_PORT: 8000
   BLUE_PORT: 8001
   GREEN_PORT: 8002
+  MODEL_BACKEND: hunyuan_api
+  HUNYUAN3D_API_URL: http://host.docker.internal:8081/generate
+  HUNYUAN3D_TIMEOUT_SECONDS: 1800
+  FALLBACK_TO_RELIEF: true
 
 jobs:
   deploy:
@@ -55,7 +59,12 @@ jobs:
       - name: Start next slot container
         shell: powershell
         run: |
-          docker run -d --name ${{ steps.slot.outputs.next_name }} -p ${{ steps.slot.outputs.next_port }}:8000 ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+          docker run -d --name ${{ steps.slot.outputs.next_name }} -p ${{ steps.slot.outputs.next_port }}:8000 `
+            -e MODEL_BACKEND=${{ env.MODEL_BACKEND }} `
+            -e HUNYUAN3D_API_URL=${{ env.HUNYUAN3D_API_URL }} `
+            -e HUNYUAN3D_TIMEOUT_SECONDS=${{ env.HUNYUAN3D_TIMEOUT_SECONDS }} `
+            -e FALLBACK_TO_RELIEF=${{ env.FALLBACK_TO_RELIEF }} `
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
 
       - name: Health check
         shell: powershell
@@ -83,7 +92,12 @@ jobs:
           if ($existing) {
             docker rm -f $liveName
           }
-          docker run -d --name image3d-live -p ${{ env.APP_PORT }}:8000 ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+          docker run -d --name image3d-live -p ${{ env.APP_PORT }}:8000 `
+            -e MODEL_BACKEND=${{ env.MODEL_BACKEND }} `
+            -e HUNYUAN3D_API_URL=${{ env.HUNYUAN3D_API_URL }} `
+            -e HUNYUAN3D_TIMEOUT_SECONDS=${{ env.HUNYUAN3D_TIMEOUT_SECONDS }} `
+            -e FALLBACK_TO_RELIEF=${{ env.FALLBACK_TO_RELIEF }} `
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
 
       - name: Remove old slot container
         shell: powershell

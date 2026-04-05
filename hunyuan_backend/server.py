@@ -6,6 +6,7 @@ from io import BytesIO
 
 import torch
 import trimesh
+import uvicorn
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
@@ -174,3 +175,6 @@ worker = ModelWorker(
     device=args.device,
 )
 
+
+if __name__ == "__main__":
+    uvicorn.run(app, host=args.host, port=args.port)

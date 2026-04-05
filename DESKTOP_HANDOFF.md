@@ -23,7 +23,9 @@ The desktop environment is now fully usable for the homework workflow.
 - Blue-Green deployment is working on the desktop
 - the `image -> 3D asset` first release has been upgraded
 - the app now also outputs a grayscale shaded render image
-- the app structure now supports an optional external real image-to-3D backend
+- the app structure now supports an external real image-to-3D backend
+- a Dockerized Hunyuan3D backend has been added and successfully tested with real inference
+- the local live app on `127.0.0.1:8000` is now configured to use the Hunyuan3D backend
 
 ## Confirmed Latest Successful Runs
 
@@ -34,6 +36,7 @@ As of the latest desktop verification:
 
 Recent successful feature commits:
 
+- `d252b37` `Add Dockerized Hunyuan3D backend stack`
 - `791bfea` `Add real image-to-3d backend integration`
 - `0f59116` `Add gray shaded render to asset output`
 - `ac1e827` `Upgrade image-to-3d first release`
@@ -52,6 +55,17 @@ The desktop is now acting as the deployment server.
   - Green: `8002`
 - health endpoint:
   - `http://127.0.0.1:8000/health`
+
+Current local runtime state on this desktop:
+
+- `image3d-live` is running on port `8000`
+- `hunyuan3d-api` is running on port `8081`
+- the app container has been restarted locally with:
+  - `MODEL_BACKEND=hunyuan_api`
+  - `HUNYUAN3D_API_URL=http://host.docker.internal:8081/generate`
+  - `HUNYUAN3D_TIMEOUT_SECONDS=1800`
+  - `FALLBACK_TO_RELIEF=true`
+- Blue-Green secondary slot containers were intentionally cleaned up, so only the stable app container remains active for now
 
 ## What Was Fixed On This Desktop
 
@@ -145,6 +159,10 @@ New files added for this:
 - `app/settings.py`
 - `app/services/real3d_client.py`
 - `REAL_3D_BACKEND_SETUP.md`
+- `compose.hunyuan-stack.yml`
+- `hunyuan_backend/Dockerfile`
+- `hunyuan_backend/entrypoint.sh`
+- `hunyuan_backend/server.py`
 
 Current behavior:
 
@@ -152,7 +170,35 @@ Current behavior:
 - `MODEL_BACKEND=hunyuan_api` attempts to call an external backend
 - if the real backend is unavailable and `FALLBACK_TO_RELIEF=true`, the app safely falls back to the built-in relief pipeline
 
-This integration path has been tested for fallback behavior and works correctly.
+This integration path has now been tested in two ways:
+
+- fallback behavior works correctly when the real backend is unavailable
+- real Hunyuan3D inference works correctly when the backend is running
+
+Verified real inference result on this desktop:
+
+- backend server health:
+  - `http://127.0.0.1:8081/health`
+- direct Hunyuan API generation:
+  - input image was sent to `/generate`
+  - GLB output was successfully returned
+  - sample generated file:
+    - `outputs/real3d_test/model.glb`
+- app-level generation through `http://127.0.0.1:8000/api/generate-asset` returned:
+  - `backend: "hunyuan_api"`
+  - `asset_format: "zip+glb"`
+
+Important implementation note:
+
+- the initial Hunyuan wrapper container loaded the model and then exited because `uvicorn.run(...)` was missing in `hunyuan_backend/server.py`
+- this has now been fixed
+- OpenGL runtime support was also improved in the Hunyuan backend image by adding `libopengl0`
+- the compose healthcheck start period was extended because first model load is slow
+
+Current limitation:
+
+- the live desktop app is already pointing to Hunyuan3D locally
+- the GitHub Actions Blue-Green deployment workflow has now also been updated so new production containers receive the Hunyuan environment variables automatically
 
 ## Model Direction Chosen So Far
 
@@ -212,18 +258,30 @@ The `report_assets/` folder contains:
 - `app/templates/index.html`
 - `app/static/app.js`
 - `app/static/styles.css`
+- `compose.hunyuan-stack.yml`
+- `hunyuan_backend/Dockerfile`
+- `hunyuan_backend/entrypoint.sh`
+- `hunyuan_backend/server.py`
 - `requirements.txt`
 - `Dockerfile`
 - `.github/workflows/ci.yml`
 - `.github/workflows/deploy-blue-green.yml`
 - `REAL_3D_BACKEND_SETUP.md`
 
+## Local Report-Only Files
+
+There are local report-only files that remain untracked and should not be committed unless intentionally needed:
+
+- `REPORT_DRAFT.md`
+- `SCREENSHOT_CHECKLIST.md`
+- `report_assets/`
+
 ## Recommended Next Steps
 
-1. Test the currently deployed app with more real images
-2. Decide whether the lightweight relief output is acceptable for the homework demo
-3. If not acceptable, proceed to connect a real image-to-3D backend on the desktop GPU
-4. Prefer Hunyuan3D-style or SF3D-style backend over TRELLIS for this environment
+1. Test the Hunyuan-connected local app at `127.0.0.1:8000` with more real images
+2. Evaluate whether Hunyuan output quality is good enough for the homework demo
+3. Commit and push the current local Hunyuan-related changes if they are accepted
+4. Re-run CI/CD so future live containers also boot with the Hunyuan environment variables
 5. Once real image-to-3D is acceptable, start the second release:
    `text -> image -> 3D asset`
 

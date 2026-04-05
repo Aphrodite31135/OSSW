@@ -79,7 +79,7 @@ form.addEventListener("submit", async (event) => {
   payload.append("base_thickness", baseThicknessInput.value);
 
   submitButton.disabled = true;
-  statusText.textContent = "Analyzing image tones, building depth, and packaging the 3D asset...";
+  statusText.textContent = "Sending the image to Hunyuan3D, generating a GLB model, and packaging the result...";
   resultCard.classList.add("hidden");
 
   try {

@@ -14,8 +14,8 @@
           <h1>{{ app_name }}</h1>
         </div>
         <p class="lead">
-          Turn a single reference image into a 3D asset package. The default path generates a lightweight relief OBJ,
-          and the app is now ready to call a real image-to-3D backend for GLB generation on the desktop GPU.
+          Turn a single reference image into a real 3D asset package. This desktop is now connected to the
+          Hunyuan3D backend, so the primary path generates a GLB model on the local GPU.
         </p>
       </section>
 
@@ -64,11 +64,11 @@
             <div class="status-list">
               <div>
                 <span class="status-key">Output</span>
-                <strong>Relief OBJ by default, or GLB when a real 3D backend is connected</strong>
+                <strong>GLB package generated through the Hunyuan3D real image-to-3D backend</strong>
               </div>
               <div>
                 <span class="status-key">Backend</span>
-                <strong>Fallback relief mesh or external real image-to-3D model API</strong>
+                <strong>Hunyuan3D API on the desktop GPU, with relief fallback only if the backend fails</strong>
               </div>
             </div>
           </aside>
