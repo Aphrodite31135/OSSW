@@ -43,11 +43,21 @@ Open `http://127.0.0.1:8000`.
 
 The app now supports an optional external real 3D backend.
 
-Environment variables:
+Recommended mode:
+
+- built-in app in Docker
+- Hunyuan3D API backend in Docker
+- model caches stored in local mounted folders
+
+Main stack file:
+
+- `compose.hunyuan-stack.yml`
+
+Main environment variables:
 
 - `MODEL_BACKEND=relief` for the built-in lightweight mesh pipeline
 - `MODEL_BACKEND=hunyuan_api` to call an external Hunyuan3D-style API server
-- `HUNYUAN3D_API_URL=http://host.docker.internal:8081/generate`
+- `HUNYUAN3D_API_URL=http://hunyuan3d-api:8081/generate`
 - `FALLBACK_TO_RELIEF=true` to fall back to the built-in mesh when the external backend is unavailable
 
 When the real backend is enabled, the app packages:

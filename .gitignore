@@ -4,3 +4,6 @@ __pycache__/
 outputs/
 actions-runner/
 tmp_validation/
+tmp_hunyuan3d2_ref/
+.hf-cache/
+.u2net/
