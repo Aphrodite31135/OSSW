@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ app_name }}</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <p class="eyebrow">HW2 Baseline Release</p>
+        <h1>{{ app_name }}</h1>
+        <p class="lead">
+          Upload one reference image and generate a lightweight 3D asset package that is easy to demo in CI/CD.
+        </p>
+      </section>
+
+      <section class="panel">
+        <form id="asset-form" class="form-panel">
+          <label for="image-input" class="upload-zone">
+            <span class="upload-title">Choose an image</span>
+            <span class="upload-copy">PNG, JPG, WEBP up to a few MB is perfect for the demo.</span>
+            <input id="image-input" name="image" type="file" accept="image/*" required />
+          </label>
+          <button id="submit-button" type="submit">Generate 3D Asset</button>
+        </form>
+
+        <div id="status-card" class="status-card">
+          <p class="status-label">Status</p>
+          <p id="status-text">Waiting for an image upload.</p>
+        </div>
+      </section>
+
+      <section id="result-card" class="result-card hidden">
+        <div class="result-copy">
+          <p class="eyebrow">Generated Result</p>
+          <h2 id="result-title">Asset Ready</h2>
+          <p id="result-summary"></p>
+          <div class="stats">
+            <div>
+              <span class="stat-label">Vertices</span>
+              <strong id="vertex-count">0</strong>
+            </div>
+            <div>
+              <span class="stat-label">Faces</span>
+              <strong id="face-count">0</strong>
+            </div>
+          </div>
+          <div class="actions">
+            <a id="asset-link" href="#" target="_blank" rel="noreferrer">Download ZIP</a>
+            <a id="texture-link" href="#" target="_blank" rel="noreferrer">Open Texture</a>
+          </div>
+        </div>
+        <div class="preview-frame">
+          <img id="preview-image" alt="Generated asset preview" />
+        </div>
+      </section>
+    </main>
+
+    <script src="/static/app.js" defer></script>
+  </body>
+</html>

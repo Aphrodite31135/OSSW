@@ -1,0 +1,86 @@
+name: Blue Green Deploy
+
+on:
+  workflow_run:
+    workflows: ["Build and Push Docker Image"]
+    types:
+      - completed
+
+env:
+  IMAGE_NAME: image-to-3d-studio
+  APP_PORT: 8000
+  BLUE_PORT: 8001
+  GREEN_PORT: 8002
+
+jobs:
+  deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Pull latest image
+        run: docker pull ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+
+      - name: Decide next slot
+        id: slot
+        shell: pwsh
+        run: |
+          $running = docker ps --format "{{.Names}}"
+          if ($running -match "^image3d-blue$") {
+            "next_name=image3d-green" >> $env:GITHUB_OUTPUT
+            "next_port=${{ env.GREEN_PORT }}" >> $env:GITHUB_OUTPUT
+            "old_name=image3d-blue" >> $env:GITHUB_OUTPUT
+          }
+          else {
+            "next_name=image3d-blue" >> $env:GITHUB_OUTPUT
+            "next_port=${{ env.BLUE_PORT }}" >> $env:GITHUB_OUTPUT
+            "old_name=image3d-green" >> $env:GITHUB_OUTPUT
+          }
+
+      - name: Remove stale next slot container
+        shell: pwsh
+        run: |
+          docker rm -f "${{ steps.slot.outputs.next_name }}" 2>$null
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "No stale container to remove."
+          }
+
+      - name: Start next slot container
+        shell: pwsh
+        run: |
+          docker run -d --name ${{ steps.slot.outputs.next_name }} -p ${{ steps.slot.outputs.next_port }}:8000 ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+
+      - name: Health check
+        shell: pwsh
+        run: |
+          $maxAttempts = 20
+          for ($i = 1; $i -le $maxAttempts; $i++) {
+            try {
+              $response = Invoke-WebRequest -Uri "http://127.0.0.1:${{ steps.slot.outputs.next_port }}/health" -UseBasicParsing
+              if ($response.StatusCode -eq 200) {
+                exit 0
+              }
+            }
+            catch {
+              Write-Host "Waiting for candidate slot health check..."
+            }
+            Start-Sleep -Seconds 3
+          }
+          throw "Candidate slot failed health check."
+
+      - name: Refresh stable entrypoint
+        shell: pwsh
+        run: |
+          docker rm -f image3d-live 2>$null
+          docker run -d --name image3d-live -p ${{ env.APP_PORT }}:8000 ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+
+      - name: Remove old slot container
+        shell: pwsh
+        run: |
+          docker rm -f "${{ steps.slot.outputs.old_name }}" 2>$null
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "No previous slot container to remove."
+          }
