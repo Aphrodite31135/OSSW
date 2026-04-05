@@ -10,12 +10,12 @@
     <main class="shell">
       <section class="hero">
         <div>
-          <p class="eyebrow">Release 1 • Image to 3D Asset</p>
+          <p class="eyebrow">Release 1 - Image to 3D Asset</p>
           <h1>{{ app_name }}</h1>
         </div>
         <p class="lead">
           Turn a single reference image into a textured relief-style OBJ package with adjustable mesh detail,
-          printable base thickness, and a cleaner demo-ready preview.
+          printable base thickness, a color preview, and a grayscale shaded render for easier report use.
         </p>
       </section>
 
@@ -36,9 +36,9 @@
               <label class="control">
                 <span>Mesh Detail</span>
                 <select id="resolution-input" name="resolution">
-                  <option value="64">Fast • 64</option>
-                  <option value="96" selected>Balanced • 96</option>
-                  <option value="128">Sharp • 128</option>
+                  <option value="64">Fast - 64</option>
+                  <option value="96" selected>Balanced - 96</option>
+                  <option value="128">Sharp - 128</option>
                 </select>
               </label>
 
@@ -64,7 +64,7 @@
             <div class="status-list">
               <div>
                 <span class="status-key">Output</span>
-                <strong>OBJ + MTL + Texture + Preview + Metadata</strong>
+                <strong>OBJ + MTL + Texture + Color Preview + Gray Render + Metadata</strong>
               </div>
               <div>
                 <span class="status-key">Best fit</span>
@@ -109,13 +109,17 @@
             <div class="actions">
               <a id="asset-link" href="#" target="_blank" rel="noreferrer">Download ZIP</a>
               <a id="texture-link" href="#" target="_blank" rel="noreferrer">Open Texture</a>
+              <a id="gray-render-link" href="#" target="_blank" rel="noreferrer">Open Gray Render</a>
               <a id="metadata-link" href="#" target="_blank" rel="noreferrer">Open Metadata</a>
             </div>
           </div>
 
           <div class="preview-stack">
             <div class="preview-frame">
-              <img id="preview-image" alt="Generated asset preview" />
+              <img id="preview-image" alt="Generated asset color preview" />
+            </div>
+            <div class="preview-frame secondary-preview">
+              <img id="gray-render-image" alt="Generated grayscale shaded render" />
             </div>
           </div>
         </section>

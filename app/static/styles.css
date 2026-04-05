@@ -287,10 +287,16 @@ button:hover {
 
 .preview-stack {
   display: grid;
+  gap: 14px;
 }
 
 .preview-frame {
   min-height: 340px;
+}
+
+.secondary-preview {
+  min-height: 220px;
+  background: linear-gradient(180deg, #ece9e2 0%, #d8d7d2 100%);
 }
 
 .hidden {

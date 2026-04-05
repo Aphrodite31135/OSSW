@@ -31,9 +31,11 @@ class AssetPipeline:
         mask_image = self._build_foreground_mask(texture_image)
         depth_map = self._build_depth_map(texture_image, mask_image, height_scale, base_thickness)
         preview_image = self._build_preview(texture_image, depth_map, mask_image)
+        gray_render_image = self._build_gray_render(depth_map, mask_image)
 
         texture_path = job_dir / "texture.png"
         preview_path = job_dir / "preview.png"
+        gray_render_path = job_dir / "gray_render.png"
         obj_path = job_dir / "mesh.obj"
         mtl_path = job_dir / "mesh.mtl"
         metadata_path = job_dir / "metadata.json"
@@ -41,6 +43,7 @@ class AssetPipeline:
 
         texture_image.save(texture_path)
         preview_image.save(preview_path)
+        gray_render_image.save(gray_render_path)
         vertex_count, face_count = self._write_obj_with_mtl(
             depth_map=depth_map,
             obj_path=obj_path,
@@ -56,7 +59,15 @@ class AssetPipeline:
             face_count=face_count,
         )
         metadata_path.write_text(json.dumps(metadata, indent=2), encoding="utf-8")
-        self._write_zip(zip_path, obj_path, mtl_path, texture_path, metadata_path, preview_path)
+        self._write_zip(
+            zip_path,
+            obj_path,
+            mtl_path,
+            texture_path,
+            metadata_path,
+            preview_path,
+            gray_render_path,
+        )
 
         stem = Path(original_name).stem or "asset"
         return {
@@ -65,6 +76,7 @@ class AssetPipeline:
             "asset_url": f"/outputs/{job_id}/{zip_path.name}",
             "texture_url": f"/outputs/{job_id}/{texture_path.name}",
             "preview_url": f"/outputs/{job_id}/{preview_path.name}",
+            "gray_render_url": f"/outputs/{job_id}/{gray_render_path.name}",
             "metadata_url": f"/outputs/{job_id}/{metadata_path.name}",
             "vertex_count": vertex_count,
             "face_count": face_count,
@@ -73,7 +85,7 @@ class AssetPipeline:
             "base_thickness": round(base_thickness, 2),
             "summary": (
                 "Generated a textured relief-style OBJ asset with a solid base, side walls, "
-                "preview render, and metadata package."
+                "color preview, grayscale shaded render, and metadata package."
             ),
         }
 
@@ -126,6 +138,26 @@ class AssetPipeline:
         shaded = texture * light[..., None]
         lifted = shaded * alpha + (245.0 * (1.0 - alpha))
         return Image.fromarray(np.uint8(np.clip(lifted, 0, 255)), mode="RGB")
+
+    def _build_gray_render(self, depth_map: np.ndarray, mask_image: Image.Image) -> Image.Image:
+        mask = np.asarray(mask_image, dtype=np.float32) / 255.0
+        gy, gx = np.gradient(depth_map)
+        slope_light = 0.9 + (gx * 1.45) - (gy * 1.7)
+        slope_light = np.clip(slope_light, 0.42, 1.18)
+
+        base_gray = 196.0 + (slope_light * 34.0)
+        shadow = np.clip(1.0 - mask, 0.0, 0.78) * 28.0
+        ridge = np.clip(depth_map / (float(depth_map.max()) + 1e-6), 0.0, 1.0) * 16.0
+        render = base_gray + ridge - shadow
+        render = np.clip(render, 82.0, 242.0)
+
+        # Slightly offset darker shadow for a more readable report-style render.
+        shifted_shadow = np.roll(mask, shift=(4, 6), axis=(0, 1))
+        shifted_shadow = (1.0 - shifted_shadow) * 38.0
+        render = np.clip(render - shifted_shadow, 70.0, 242.0)
+
+        rgb = np.repeat(render[..., None], 3, axis=2)
+        return Image.fromarray(np.uint8(rgb), mode="RGB")
 
     def _write_obj_with_mtl(
         self,
@@ -331,6 +363,7 @@ class AssetPipeline:
         texture_path: Path,
         metadata_path: Path,
         preview_path: Path,
+        gray_render_path: Path,
     ) -> None:
         with zipfile.ZipFile(zip_path, mode="w", compression=zipfile.ZIP_DEFLATED) as archive:
             archive.write(obj_path, arcname=obj_path.name)
@@ -338,3 +371,4 @@ class AssetPipeline:
             archive.write(texture_path, arcname=texture_path.name)
             archive.write(metadata_path, arcname=metadata_path.name)
             archive.write(preview_path, arcname=preview_path.name)
+            archive.write(gray_render_path, arcname=gray_render_path.name)

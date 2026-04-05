@@ -11,6 +11,7 @@ class AssetResponse(BaseModel):
     asset_url: str
     texture_url: str
     preview_url: str
+    gray_render_url: str
     metadata_url: str
     vertex_count: int
     face_count: int
