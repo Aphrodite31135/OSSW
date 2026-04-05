@@ -43,8 +43,12 @@ jobs:
       - name: Remove stale next slot container
         shell: powershell
         run: |
-          docker rm -f "${{ steps.slot.outputs.next_name }}" 2>$null
-          if ($LASTEXITCODE -ne 0) {
+          $nextName = "${{ steps.slot.outputs.next_name }}"
+          $existing = docker ps -a --format "{{.Names}}" | Where-Object { $_ -eq $nextName }
+          if ($existing) {
+            docker rm -f $nextName
+          }
+          else {
             Write-Host "No stale container to remove."
           }
 
@@ -74,13 +78,21 @@ jobs:
       - name: Refresh stable entrypoint
         shell: powershell
         run: |
-          docker rm -f image3d-live 2>$null
+          $liveName = "image3d-live"
+          $existing = docker ps -a --format "{{.Names}}" | Where-Object { $_ -eq $liveName }
+          if ($existing) {
+            docker rm -f $liveName
+          }
           docker run -d --name image3d-live -p ${{ env.APP_PORT }}:8000 ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
 
       - name: Remove old slot container
         shell: powershell
         run: |
-          docker rm -f "${{ steps.slot.outputs.old_name }}" 2>$null
-          if ($LASTEXITCODE -ne 0) {
+          $oldName = "${{ steps.slot.outputs.old_name }}"
+          $existing = docker ps -a --format "{{.Names}}" | Where-Object { $_ -eq $oldName }
+          if ($existing) {
+            docker rm -f $oldName
+          }
+          else {
             Write-Host "No previous slot container to remove."
           }
