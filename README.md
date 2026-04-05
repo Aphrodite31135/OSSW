@@ -14,9 +14,19 @@ Homework-friendly baseline project for:
 The first release accepts one uploaded image and generates:
 
 - `texture.png`
+- `preview.png`
 - `mesh.obj`
 - `mesh.mtl`
+- `metadata.json`
 - `asset_package.zip`
+
+The current release also includes:
+
+- adjustable mesh detail
+- adjustable height strength
+- adjustable base thickness
+- a solid relief-style mesh with side walls
+- a lightweight metadata file for demo/report screenshots
 
 This keeps the pipeline lightweight for development while preserving a clean path to swap in a real image-to-3D model on the GPU runner later.
 
