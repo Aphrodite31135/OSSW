@@ -8,6 +8,7 @@ from fastapi.templating import Jinja2Templates
 from app.schemas import AssetResponse, HealthResponse
 from app.services.asset_pipeline import AssetPipeline
 from app.services.real3d_client import Real3DClientError
+from app.services.text2image_client import TextToImageClientError
 from app.settings import Settings
 
 
@@ -48,18 +49,16 @@ async def health() -> HealthResponse:
 
 @app.post("/api/generate-asset", response_model=AssetResponse)
 async def generate_asset(
-    image: UploadFile = File(...),
+    source_mode: str = Form("image"),
+    prompt: str = Form(""),
+    image: UploadFile | None = File(None),
     resolution: int = Form(96),
     height_scale: float = Form(0.32),
     base_thickness: float = Form(0.14),
 ) -> AssetResponse:
-    content_type = image.content_type or ""
-    if not content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="Please upload an image file.")
-
-    image_bytes = await image.read()
-    if not image_bytes:
-        raise HTTPException(status_code=400, detail="Uploaded image is empty.")
+    source_mode = source_mode.strip().lower()
+    if source_mode not in {"image", "text"}:
+        raise HTTPException(status_code=400, detail="Source mode must be image or text.")
 
     if resolution not in {64, 96, 128}:
         raise HTTPException(status_code=400, detail="Resolution must be 64, 96, or 128.")
@@ -68,14 +67,33 @@ async def generate_asset(
     if not 0.04 <= base_thickness <= 0.3:
         raise HTTPException(status_code=400, detail="Base thickness must be between 0.04 and 0.3.")
 
+    image_bytes: bytes | None = None
+    original_name = "upload.png"
+    prompt = prompt.strip()
+
+    if source_mode == "image":
+        if image is None:
+            raise HTTPException(status_code=400, detail="Please upload an image file.")
+        content_type = image.content_type or ""
+        if not content_type.startswith("image/"):
+            raise HTTPException(status_code=400, detail="Please upload an image file.")
+        image_bytes = await image.read()
+        if not image_bytes:
+            raise HTTPException(status_code=400, detail="Uploaded image is empty.")
+        original_name = image.filename or "upload.png"
+    elif not prompt:
+        raise HTTPException(status_code=400, detail="Please enter a prompt for text-to-image generation.")
+
     try:
         result = pipeline.generate(
+            source_mode=source_mode,
+            prompt=prompt or None,
             image_bytes=image_bytes,
-            original_name=image.filename or "upload.png",
+            original_name=original_name,
             resolution=resolution,
             height_scale=height_scale,
             base_thickness=base_thickness,
         )
-    except Real3DClientError as exc:
+    except (Real3DClientError, TextToImageClientError) as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     return AssetResponse(**result)

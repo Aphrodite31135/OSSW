@@ -7,3 +7,4 @@ tmp_validation/
 tmp_hunyuan3d2_ref/
 .hf-cache/
 .u2net/
+.comfy-models/

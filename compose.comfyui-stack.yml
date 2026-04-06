@@ -7,8 +7,10 @@ services:
     environment:
       MODEL_BACKEND: hunyuan_api
       HUNYUAN3D_API_URL: http://hunyuan3d-api:8081/generate
-      TEXT_TO_IMAGE_BACKEND: flux_api
-      TEXT_TO_IMAGE_API_URL: http://text2image-api:8090/generate
+      TEXT_TO_IMAGE_BACKEND: comfyui_api
+      TEXT_TO_IMAGE_API_URL: http://text2image-api:3000/workflow/object_txt2img
+      CUTOUT_BACKEND_ENABLED: "true"
+      CUTOUT_API_URL: http://cutout-api:8091/cutout
       FALLBACK_TO_RELIEF: "true"
     ports:
       - "8000:8000"
@@ -18,6 +20,8 @@ services:
       hunyuan3d-api:
         condition: service_healthy
       text2image-api:
+        condition: service_healthy
+      cutout-api:
         condition: service_healthy
 
   hunyuan3d-api:
@@ -51,26 +55,40 @@ services:
   text2image-api:
     build:
       context: .
-      dockerfile: text2image_backend/Dockerfile
+      dockerfile: comfyui_custom/Dockerfile
     container_name: text2image-api
     environment:
-      TEXT2IMAGE_HOST: 0.0.0.0
-      TEXT2IMAGE_PORT: 8090
-      TEXT2IMAGE_DEVICE: cuda
-      TEXT2IMAGE_MODEL_ID: playgroundai/playground-v2.5-1024px-aesthetic
-      TEXT2IMAGE_NUM_INFERENCE_STEPS: 24
-      TEXT2IMAGE_GUIDANCE_SCALE: 3.0
-      TEXT2IMAGE_WIDTH: 512
-      TEXT2IMAGE_HEIGHT: 512
+      PORT: 3000
+      COMFYUI_CHECKPOINT_NAME: SSD-1B-A1111.safetensors
+      COMFYUI_CHECKPOINT_URL: https://huggingface.co/segmind/SSD-1B/resolve/main/SSD-1B-A1111.safetensors
     ports:
-      - "8090:8090"
+      - "8090:3000"
     volumes:
-      - ./.hf-cache:/models/hf-cache
-      - ./outputs/text2image-cache:/workspace/cache
+      - ./.hf-cache:/root/.cache/huggingface
+      - ./.comfy-models:/opt/ComfyUI/models/checkpoints
+      - ./outputs/comfyui-cache:/root/.cache/comfyui-api
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8090/health', timeout=5).read()"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:3000/health', timeout=5).read()"]
       interval: 30s
       timeout: 10s
       retries: 20
       start_period: 10m
     gpus: all
+
+  cutout-api:
+    build:
+      context: .
+      dockerfile: cutout_backend/Dockerfile
+    container_name: cutout-api
+    environment:
+      CUTOUT_MODEL: u2net
+    ports:
+      - "8091:8091"
+    volumes:
+      - ./.u2net:/models/u2net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8091/health', timeout=5).read()"]
+      interval: 30s
+      timeout: 10s
+      retries: 20
+      start_period: 3m

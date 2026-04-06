@@ -21,7 +21,8 @@ os.makedirs(SAVE_DIR, exist_ok=True)
 
 
 def load_image_from_base64(image: str) -> Image.Image:
-    return Image.open(BytesIO(base64.b64decode(image))).convert("RGB")
+    loaded = Image.open(BytesIO(base64.b64decode(image)))
+    return loaded.convert("RGBA") if "A" in loaded.getbands() else loaded.convert("RGB")
 
 
 class ModelWorker:
@@ -53,7 +54,14 @@ class ModelWorker:
         guidance_scale: float,
     ) -> str:
         image = load_image_from_base64(image_b64)
-        image = self.rembg(image)
+        has_alpha = "A" in image.getbands()
+        alpha = image.getchannel("A") if has_alpha else None
+        has_transparency = has_alpha and alpha is not None and alpha.getbbox() is not None
+
+        if has_transparency:
+            image = image.convert("RGBA")
+        else:
+            image = self.rembg(image.convert("RGB"))
         generator = torch.Generator(self.device).manual_seed(seed)
 
         mesh = self.pipeline(

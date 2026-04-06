@@ -10,22 +10,39 @@
     <main class="shell">
       <section class="hero">
         <div>
-          <p class="eyebrow">Release 1 - Image to 3D Asset</p>
+          <p class="eyebrow">Release 2 Preview - Text / Image to 3D Asset</p>
           <h1>{{ app_name }}</h1>
         </div>
         <p class="lead">
-          Turn a single reference image into a real 3D asset package. This desktop is now connected to the
-          Hunyuan3D backend, so the primary path generates a GLB model on the local GPU.
+          Turn either a reference image or a text prompt into a real 3D asset package. The app can first generate
+          a source image from text and then send that image to the Hunyuan3D backend for local GPU-based GLB output.
         </p>
       </section>
 
       <section class="workspace">
         <section class="panel">
           <form id="asset-form" class="form-panel">
+            <div class="mode-toggle">
+              <label class="mode-chip">
+                <input id="mode-image" type="radio" name="source_mode" value="image" checked />
+                <span>Image to 3D</span>
+              </label>
+              <label class="mode-chip">
+                <input id="mode-text" type="radio" name="source_mode" value="text" />
+                <span>Text to Image to 3D</span>
+              </label>
+            </div>
+
             <label for="image-input" class="upload-zone">
               <span class="upload-title">Reference Image</span>
               <span class="upload-copy">PNG, JPG, or WEBP. Product photos, icons, and illustrations work best.</span>
-              <input id="image-input" name="image" type="file" accept="image/*" required />
+              <input id="image-input" name="image" type="file" accept="image/*" />
+            </label>
+
+            <label id="prompt-panel" class="prompt-panel hidden">
+              <span class="upload-title">Prompt</span>
+              <span class="upload-copy">Describe a single object. The app automatically adds framing instructions so the full object stays inside the image before 3D generation.</span>
+              <textarea id="prompt-input" name="prompt" rows="4" placeholder="A modern white apartment building with blue glass windows, clean balcony lines, architectural visualization"></textarea>
             </label>
 
             <div id="source-preview" class="source-preview hidden">
@@ -64,11 +81,11 @@
             <div class="status-list">
               <div>
                 <span class="status-key">Output</span>
-                <strong>GLB package generated through the Hunyuan3D real image-to-3D backend</strong>
+                <strong>Prompt-generated image or uploaded image converted into a GLB package</strong>
               </div>
               <div>
                 <span class="status-key">Backend</span>
-                <strong>Hunyuan3D API on the desktop GPU, with relief fallback only if the backend fails</strong>
+                <strong>Text-to-image backend plus Hunyuan3D API on the desktop GPU, with relief fallback if needed</strong>
               </div>
             </div>
           </aside>

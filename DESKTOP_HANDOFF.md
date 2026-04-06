@@ -26,6 +26,12 @@ The desktop environment is now fully usable for the homework workflow.
 - the app structure now supports an external real image-to-3D backend
 - a Dockerized Hunyuan3D backend has been added and successfully tested with real inference
 - the local live app on `127.0.0.1:8000` is now configured to use the Hunyuan3D backend
+- a first `text -> image -> 3D asset` path has also been connected locally
+- the text-to-image backend has now been switched to `playgroundai/playground-v2.5-1024px-aesthetic`
+- the new text backend and the full `text -> image -> 3D` path have both been re-tested successfully on this desktop
+- an optional stronger Docker Hub-based `SD 3.5 Large Turbo` stack has now been wired into the repo for later testing with a Hugging Face token
+- an optional token-free ComfyUI stack has now also been wired into the repo for later testing with public checkpoints
+- the token-free ComfyUI path has now been upgraded into a custom image with a custom workflow and has been validated end-to-end on the live desktop app
 
 ## Confirmed Latest Successful Runs
 
@@ -60,10 +66,14 @@ Current local runtime state on this desktop:
 
 - `image3d-live` is running on port `8000`
 - `hunyuan3d-api` is running on port `8081`
+- `text2image-api` is running on port `8090`
 - the app container has been restarted locally with:
   - `MODEL_BACKEND=hunyuan_api`
   - `HUNYUAN3D_API_URL=http://host.docker.internal:8081/generate`
   - `HUNYUAN3D_TIMEOUT_SECONDS=1800`
+  - `TEXT_TO_IMAGE_BACKEND=flux_api`
+  - `TEXT_TO_IMAGE_API_URL=http://host.docker.internal:8090/generate`
+  - `TEXT_TO_IMAGE_TIMEOUT_SECONDS=1800`
   - `FALLBACK_TO_RELIEF=true`
 - Blue-Green secondary slot containers were intentionally cleaned up, so only the stable app container remains active for now
 
@@ -200,6 +210,78 @@ Current limitation:
 - the live desktop app is already pointing to Hunyuan3D locally
 - the GitHub Actions Blue-Green deployment workflow has now also been updated so new production containers receive the Hunyuan environment variables automatically
 
+## Text-to-Image to 3D Progress
+
+The second-release path has now been prototyped locally:
+
+- `text -> image -> 3D asset`
+
+New files added for this:
+
+- `app/services/text2image_client.py`
+- `text2image_backend/Dockerfile`
+- `text2image_backend/server.py`
+
+Current local behavior:
+
+- the Web UI now supports both:
+  - `image -> 3D`
+  - `text -> image -> 3D`
+- text mode sends a prompt to a local text-to-image API container
+- the generated image is then passed to the Hunyuan3D backend
+- the final app response returns:
+  - `source_mode`
+  - `source_image_url`
+  - `asset_format: "zip+glb"`
+
+What has already been verified:
+
+- the local text-to-image API runs on:
+  - `http://127.0.0.1:8090/health`
+- direct text-to-image generation returned PNG outputs successfully
+- app-level `text -> image -> 3D` calls returned successful `zip+glb` responses after the backend became healthy
+- after switching models, `http://127.0.0.1:8090/health` now reports:
+  - `model_id: "playgroundai/playground-v2.5-1024px-aesthetic"`
+- a full app-level retest also succeeded after the model switch:
+  - sample successful job id:
+    - `7f7f773aa8dc`
+  - returned fields included:
+    - `backend: "hunyuan_api"`
+    - `source_mode: "text"`
+    - `asset_format: "zip+glb"`
+
+Important quality limitation discovered:
+
+- the initial local text-to-image backend used `stabilityai/sdxl-turbo`
+- even with prompt strengthening, negative prompts, padding, and object recentering, it still often generates building images that are too scene-like, too cropped, or too close-up
+- this causes Hunyuan3D to reconstruct poor box-like or slab-like geometry
+
+Current decision:
+
+- the user explicitly approved replacing the current text-to-image model if necessary
+- an attempted switch to `FLUX.1-schnell` failed locally because the Hugging Face repo is gated and requires authentication
+- `stabilityai/stable-diffusion-xl-base-1.0` works as a public replacement, but the user wants a stronger model
+- an attempted switch to `stabilityai/stable-diffusion-3.5-medium` also failed locally because the model requires gated access
+- the current selected public replacement is now `playgroundai/playground-v2.5-1024px-aesthetic`
+- this model now boots successfully in Docker on the desktop GPU and is currently the most realistic public step up from SDXL Base that has actually worked in this environment
+- for a higher-end but gated option, the repo now also includes `compose.sd35-dockerhub-stack.yml`, which targets `stabilityai/stable-diffusion-3.5-large-turbo` through the Docker Hub image `blumfontein/docker-stable-diffusion`
+- that path still requires `HUGGING_FACE_HUB_TOKEN` access and has not been fully runtime-tested on this desktop yet
+- for a token-free workflow-driven option, the repo now also includes `compose.comfyui-stack.yml`, which now builds a custom ComfyUI image
+- that custom image uses a public checkpoint volume at `.comfy-models/` and downloads `segmind/SSD-1B` as `SSD-1B-A1111.safetensors`
+- the app-facing route for this stack is now `POST /workflow/object_txt2img`
+- that path is intended to improve object framing control more than raw model quality
+- this custom ComfyUI path has now been tested successfully with:
+  - backend health on `http://127.0.0.1:8090/health`
+  - live app text-to-image-to-3D success job:
+    - `76b1bc7db39a`
+  - custom workflow test output:
+    - `outputs/comfyui_custom_test/source_input.png`
+- key new files for this path:
+  - `comfyui_custom/Dockerfile`
+  - `comfyui_custom/entrypoint.sh`
+  - `comfyui_custom/object_txt2img.ts`
+  - `comfyui_custom/warmup.json`
+
 ## Model Direction Chosen So Far
 
 The user asked whether the model could be changed, and the answer is yes.
@@ -255,6 +337,7 @@ The `report_assets/` folder contains:
 - `app/settings.py`
 - `app/services/asset_pipeline.py`
 - `app/services/real3d_client.py`
+- `app/services/text2image_client.py`
 - `app/templates/index.html`
 - `app/static/app.js`
 - `app/static/styles.css`
@@ -262,6 +345,8 @@ The `report_assets/` folder contains:
 - `hunyuan_backend/Dockerfile`
 - `hunyuan_backend/entrypoint.sh`
 - `hunyuan_backend/server.py`
+- `text2image_backend/Dockerfile`
+- `text2image_backend/server.py`
 - `requirements.txt`
 - `Dockerfile`
 - `.github/workflows/ci.yml`
@@ -278,12 +363,13 @@ There are local report-only files that remain untracked and should not be commit
 
 ## Recommended Next Steps
 
-1. Test the Hunyuan-connected local app at `127.0.0.1:8000` with more real images
-2. Evaluate whether Hunyuan output quality is good enough for the homework demo
-3. Commit and push the current local Hunyuan-related changes if they are accepted
-4. Re-run CI/CD so future live containers also boot with the Hunyuan environment variables
-5. Once real image-to-3D is acceptable, start the second release:
-   `text -> image -> 3D asset`
+1. Compare `Playground v2.5` source-image framing against the previous SDXL-based outputs with the same prompts
+2. Tighten the default building/object prompt template further if framing is still too close
+3. Commit and push the current text-to-image-to-3D changes once quality is acceptable
+4. Re-run CI/CD so future live containers also boot with both the Hunyuan and text-to-image environment variables
+5. If quality is still insufficient, test another non-gated public text-to-image model rather than returning to SDXL Base
+6. If a Hugging Face token is available, test `compose.sd35-dockerhub-stack.yml` and compare SD 3.5 Large Turbo framing against Playground v2.5
+7. Test `compose.comfyui-stack.yml` and compare whether ComfyUI workflow control helps keep full objects in frame more reliably
 
 ## What To Ask Codex Next
 

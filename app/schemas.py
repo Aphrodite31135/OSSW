@@ -9,10 +9,13 @@ class HealthResponse(BaseModel):
 
 class AssetResponse(BaseModel):
     job_id: str
+    source_mode: str
     backend: str
     asset_format: str
     asset_name: str
     asset_url: str
+    source_image_url: Optional[str] = None
+    prompt: Optional[str] = None
     texture_url: Optional[str] = None
     preview_url: Optional[str] = None
     gray_render_url: Optional[str] = None
