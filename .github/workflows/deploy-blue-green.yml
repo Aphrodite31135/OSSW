@@ -14,9 +14,12 @@ env:
   MODEL_BACKEND: hunyuan_api
   HUNYUAN3D_API_URL: http://host.docker.internal:8081/generate
   HUNYUAN3D_TIMEOUT_SECONDS: 1800
-  TEXT_TO_IMAGE_BACKEND: flux_api
-  TEXT_TO_IMAGE_API_URL: http://host.docker.internal:8090/generate
+  TEXT_TO_IMAGE_BACKEND: comfyui_api
+  TEXT_TO_IMAGE_API_URL: http://host.docker.internal:8090/workflow/object_txt2img
   TEXT_TO_IMAGE_TIMEOUT_SECONDS: 1800
+  CUTOUT_BACKEND_ENABLED: true
+  CUTOUT_API_URL: http://host.docker.internal:8091/cutout
+  CUTOUT_TIMEOUT_SECONDS: 1800
   FALLBACK_TO_RELIEF: true
 
 jobs:
@@ -69,6 +72,9 @@ jobs:
             -e TEXT_TO_IMAGE_BACKEND=${{ env.TEXT_TO_IMAGE_BACKEND }} `
             -e TEXT_TO_IMAGE_API_URL=${{ env.TEXT_TO_IMAGE_API_URL }} `
             -e TEXT_TO_IMAGE_TIMEOUT_SECONDS=${{ env.TEXT_TO_IMAGE_TIMEOUT_SECONDS }} `
+            -e CUTOUT_BACKEND_ENABLED=${{ env.CUTOUT_BACKEND_ENABLED }} `
+            -e CUTOUT_API_URL=${{ env.CUTOUT_API_URL }} `
+            -e CUTOUT_TIMEOUT_SECONDS=${{ env.CUTOUT_TIMEOUT_SECONDS }} `
             -e FALLBACK_TO_RELIEF=${{ env.FALLBACK_TO_RELIEF }} `
             ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
 
@@ -105,6 +111,9 @@ jobs:
             -e TEXT_TO_IMAGE_BACKEND=${{ env.TEXT_TO_IMAGE_BACKEND }} `
             -e TEXT_TO_IMAGE_API_URL=${{ env.TEXT_TO_IMAGE_API_URL }} `
             -e TEXT_TO_IMAGE_TIMEOUT_SECONDS=${{ env.TEXT_TO_IMAGE_TIMEOUT_SECONDS }} `
+            -e CUTOUT_BACKEND_ENABLED=${{ env.CUTOUT_BACKEND_ENABLED }} `
+            -e CUTOUT_API_URL=${{ env.CUTOUT_API_URL }} `
+            -e CUTOUT_TIMEOUT_SECONDS=${{ env.CUTOUT_TIMEOUT_SECONDS }} `
             -e FALLBACK_TO_RELIEF=${{ env.FALLBACK_TO_RELIEF }} `
             ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
 
